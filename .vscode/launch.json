@@ -5,12 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Local API Server",
+            "name": "API",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/main.go",
-            "args": ["run"]
+            "args": ["run"],
+            "env": {
+                "ENV": "local"
+            }
         },
         {
             "name": "Reset DB",
@@ -18,7 +21,21 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/main.go",
-            "args": ["resetdb"]
+            "args": ["resetdb"],
+            "env": {
+                "ENV": "local"
+            }
+        },
+        {
+            "name": "Reset Redis",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/main.go",
+            "args": ["resetredis"],
+            "env": {
+                "ENV": "local"
+            }
         }
     ]
 }

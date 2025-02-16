@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
+	redis "github.com/redis/go-redis/v9"
 )
 
 // RedisClient is a pointer to a redis.Client

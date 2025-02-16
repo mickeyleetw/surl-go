@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 )
 
 // ValidateRequest is a middleware that validates the request payload

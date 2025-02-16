@@ -1,0 +1,46 @@
+name: Continuous Integration 🚛
+
+on: push
+
+# Enable Buildkit and let compose use it to speed up image building
+env:
+  DOCKER_BUILDKIT: 1
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  GO_VERSION: "1.23.5"
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+# Required permissions for the workflow to run
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5.3.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install Go tools
+        run: |
+          go install golang.org/x/lint/golint@latest
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+          go install github.com/go-critic/go-critic/cmd/gocritic@latest
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.55.2
+
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: golangci-lint # skip golangci-lint
