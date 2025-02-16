@@ -10,15 +10,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// RedisClient is a pointer to a redis.Client
 var RedisClient *redis.Client
 
+// GetRedis returns a singleton instance of the redis client
 func GetRedis() *redis.Client {
 	addr, password := getRedisConnection()
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
 		DB:       0,
-	}) //&redis.Options{} to get redis.Client pointer
+	}) // &redis.Options{} to get redis.Client pointer
 
 	// test connection
 	ctx := context.Background()
@@ -30,8 +32,8 @@ func GetRedis() *redis.Client {
 }
 
 func getRedisConnection() (string, string) {
-	ENV := os.Getenv("ENV")
-	if ENV == "local" {
+	env := os.Getenv("ENV")
+	if env == "local" {
 		currentDir, _ := os.Getwd()
 		log.Printf("Current working directory: %s", currentDir)
 		dbenvPath := filepath.Join(currentDir, "../.dbenv")
@@ -39,14 +41,15 @@ func getRedisConnection() (string, string) {
 
 		_ = godotenv.Load(dbenvPath)
 	}
-	REDIS_HOST := os.Getenv("REDIS_HOST")
-	REDIS_PORT := os.Getenv("REDIS_PORT")
-	REDIS_PASSWORD := os.Getenv("REDIS_PASSWORD")
-	addr := REDIS_HOST + ":" + REDIS_PORT
-	password := REDIS_PASSWORD
+	redisHost := os.Getenv("REDIS_HOST")
+	redisPort := os.Getenv("REDIS_PORT")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	addr := redisHost + ":" + redisPort
+	password := redisPassword
 	return addr, password
 }
 
+// CloseRedis is a function that closes the Redis client connection
 func CloseRedis() error {
 	if RedisClient != nil {
 		return RedisClient.Close()

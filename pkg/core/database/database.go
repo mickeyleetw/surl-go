@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,14 +15,14 @@ import (
 )
 
 var (
-	instance  *gorm.DB
-	once      sync.Once
-	DB_SCHEMA string = "surl"
+	instance *gorm.DB
+	once     sync.Once
+	dbSchema string = "surl"
 )
 
 func getDBConnection() string {
-	ENV := os.Getenv("ENV")
-	if ENV == "local" {
+	env := os.Getenv("ENV")
+	if env == "local" {
 		currentDir, _ := os.Getwd()
 		log.Printf("Current working directory: %s", currentDir)
 		dbenvPath := filepath.Join(currentDir, "../.dbenv")
@@ -30,56 +31,68 @@ func getDBConnection() string {
 		_ = godotenv.Load(dbenvPath)
 	}
 
-	DB_DIALECT := os.Getenv("DB_DIALECT")
-	DB_USER := os.Getenv("DB_USER")
-	DB_PASSWORD := os.Getenv("DB_PASSWORD")
-	DB_HOST := os.Getenv("DB_HOST")
-	DB_PORT := os.Getenv("DB_PORT")
-	DB_NAME := os.Getenv("DB_NAME")
-	DB_SCHEMA = os.Getenv("DB_SCHEMA")
-	dsn := DB_DIALECT + "://" + DB_USER + ":" + DB_PASSWORD + "@" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME + "?sslmode=disable&search_path=" + DB_SCHEMA
+	dbDialect := os.Getenv("DB_DIALECT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+	dbSchema = os.Getenv("DB_SCHEMA")
+	dsn := dbDialect + "://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable&search_path=" + dbSchema
 
 	return dsn
 }
 
+// GetDB returns a singleton instance of the database
 func GetDB() *gorm.DB {
 	once.Do(func() {
-		db_dsn := getDBConnection()
-		db, err := gorm.Open(postgres.Open(db_dsn), &gorm.Config{PrepareStmt: true})
+		dbDsn := getDBConnection()
+		db, err := gorm.Open(postgres.Open(dbDsn), &gorm.Config{PrepareStmt: true})
 		if err != nil {
 			log.Fatal("Error connecting to database: ", err)
 		}
+		db.Exec("DROP SCHEMA IF EXISTS " + dbSchema + " CASCADE")
 		// schema_sql := fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", DB_SCHEMA)
-		db.Exec("CREATE SCHEMA IF NOT EXISTS " + DB_SCHEMA)
+		db.Exec("CREATE SCHEMA IF NOT EXISTS " + dbSchema)
 		// search_path_sql := fmt.Sprintf("SET search_path TO %s", DB_SCHEMA)
-		db.Exec("SET search_path TO " + DB_SCHEMA)
-		db.AutoMigrate(&domain.Url{})
+		db.Exec("SET search_path TO " + dbSchema)
+		err = db.AutoMigrate(&domain.URL{})
+		if err != nil {
+			log.Printf("Failed to auto migrate database: %v", err)
+			return
+		}
 		instance = db
 	})
 	return instance
 }
 
+// UnitOfWork is a struct that implements the unit of work pattern
 type UnitOfWork struct {
 	DB *gorm.DB
 }
 
+// NewUnitOfWork is a function that returns a pointer to a new UnitOfWork struct
 func NewUnitOfWork(db *gorm.DB) *UnitOfWork {
 	// dB: pointer to the type gorm.DB
 	return &UnitOfWork{DB: db} // return a pointer of a new UnitOfWork struct
 }
 
+// Begin is a method that returns a pointer to a new gorm.DB transaction
 func (uow *UnitOfWork) Begin() *gorm.DB {
 	return uow.DB.Begin()
 }
 
-func (u *UnitOfWork) Commit(tx *gorm.DB) error {
+// Commit is a method that commits the transaction
+func (uow *UnitOfWork) Commit(tx *gorm.DB) error {
 	return tx.Commit().Error
 }
 
-func (u *UnitOfWork) Rollback(tx *gorm.DB) error {
+// Rollback is a method that rolls back the transaction
+func (uow *UnitOfWork) Rollback(tx *gorm.DB) error {
 	return tx.Rollback().Error
 }
 
+// WithTransaction is a function that executes a function within a transaction
 func WithTransaction(fn func(tx *gorm.DB) error) error {
 	uow := NewUnitOfWork(GetDB())
 	tx := uow.Begin()
@@ -87,7 +100,9 @@ func WithTransaction(fn func(tx *gorm.DB) error) error {
 
 	defer func() {
 		if err != nil {
-			uow.Rollback(tx)
+			if rbErr := uow.Rollback(tx); rbErr != nil {
+				err = fmt.Errorf("original error: %v, rollback error: %v", err, rbErr)
+			}
 		} else {
 			err = uow.Commit(tx)
 		}
