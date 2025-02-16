@@ -1,14 +1,14 @@
-version: '3'
+version: "3"
 services:
   postgres:
-    image: 'postgres:13-alpine'
+    image: "postgres:13-alpine"
     restart: always
     environment:
       - POSTGRES_DB=surl
       - POSTGRES_USER=usr
       - POSTGRES_PASSWORD=usr
     ports:
-      - '5432:5432'
+      - "5432:5432"
   redis:
     image: redis:alpine
     ports:
@@ -40,5 +40,4 @@ services:
       - API_PORT=8080
       - API_VERSION=v1
     ports:
-      - '8080:8080'
-  
+      - "8080:8080"

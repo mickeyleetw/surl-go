@@ -1,4 +1,4 @@
-package dbCmd
+package dbcmd
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// ResetDBCmd is the command to reset the database
 var (
 	ResetDBCmd = &cobra.Command{
 		Use:   "resetdb",
@@ -19,6 +20,7 @@ var (
 	}
 )
 
+// ResetRedisCmd is the command to reset the redis
 var (
 	ResetRedisCmd = &cobra.Command{
 		Use:   "resetredis",
@@ -30,11 +32,13 @@ var (
 	}
 )
 
+// resetDB is the function to reset the database
 func resetDB() {
 	database.GetDB()
 }
 
+// resetRedis is the function to reset the redis
 func resetRedis() {
-	redis_client := redis.GetRedis()
-	redis_client.FlushAll(context.Background())
+	redisClient := redis.GetRedis()
+	redisClient.FlushAll(context.Background())
 }

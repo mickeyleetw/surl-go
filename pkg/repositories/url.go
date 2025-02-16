@@ -8,23 +8,24 @@ import (
 	"gorm.io/gorm"
 )
 
-func GetOrCreateShortUrl(longUrl string) (string, error) {
-	var shortUrl string
+// GetOrCreateShortURL is a function that gets or creates a short URL
+func GetOrCreateShortURL(longURL string) (string, error) {
+	var shortURL string
 	err := database.WithTransaction(func(tx *gorm.DB) error {
-		var url domains.Url
+		var url domains.URL
 		// Check if the long URL already exists
-		err := tx.Where(&domains.Url{LongUrl: longUrl}).First(&url).Error
+		err := tx.Where(&domains.URL{LongURL: longURL}).First(&url).Error
 		if err == nil {
-			shortUrl = url.ShortUrl
+			shortURL = url.ShortURL
 			return nil
 		} else if err != gorm.ErrRecordNotFound {
 			return err
 		}
 
 		// Generate a new short URL
-		shortUrl = utils.GenerateShortURL(longUrl)
+		shortURL = utils.GenerateShortURL(longURL)
 		// Check if the generated short URL already exists
-		err = tx.Where(&domains.Url{ShortUrl: shortUrl}).First(&url).Error
+		err = tx.Where(&domains.URL{ShortURL: shortURL}).First(&url).Error
 		if err == nil {
 			return nil
 		} else if err != gorm.ErrRecordNotFound {
@@ -32,7 +33,7 @@ func GetOrCreateShortUrl(longUrl string) (string, error) {
 		}
 
 		// Create a new URL record
-		err = tx.Create(&domains.Url{LongUrl: longUrl, ShortUrl: shortUrl}).Error
+		err = tx.Create(&domains.URL{LongURL: longURL, ShortURL: shortURL}).Error
 		if err != nil {
 			return err
 		}
@@ -44,23 +45,24 @@ func GetOrCreateShortUrl(longUrl string) (string, error) {
 		return "", err
 	}
 
-	return shortUrl, nil
+	return shortURL, nil
 }
 
-func GetUrlByShortUrl(shortUrl string) (string, error) {
-	var url domains.Url
-	var longUrl string = ""
+// GetLongURLByShortURL is a function that gets a long URL from a short URL
+func GetLongURLByShortURL(shortURL string) (string, error) {
+	var url domains.URL
+	var longURL string = ""
 	err := database.WithTransaction(func(tx *gorm.DB) error {
-		err := tx.Where(&domains.Url{ShortUrl: shortUrl}).First(&url).Error
+		err := tx.Where(&domains.URL{ShortURL: shortURL}).First(&url).Error
 		if err != nil {
 			return err
 		}
-		longUrl = url.LongUrl
+		longURL = url.LongURL
 		return nil
 	})
 	if err != nil {
-		return longUrl, err
+		return longURL, err
 	}
 
-	return longUrl, nil
+	return longURL, nil
 }

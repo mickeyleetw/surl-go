@@ -4,17 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 )
 
-type RequestPayloadValidator struct {
-	validator *validator.Validate
-}
-
-func (rv *RequestPayloadValidator) Validate(obj interface{}) error {
-	return rv.validator.Struct(obj)
-}
-
+// ValidateRequest is a middleware that validates the request payload
 func ValidateRequest[T any]() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req T

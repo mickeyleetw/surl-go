@@ -12,10 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CreateUrlShorten(c *gin.Context) {
+// CreateURLShorten is a function that creates a short URL
+func CreateURLShorten(c *gin.Context) {
 	// wrap json to validated payload model
-	createUrlShortenModel := c.MustGet("validated_data").(models.CreateUrlShortenModel)
-	shortUrl, err := repositories.GetOrCreateShortUrl(createUrlShortenModel.LongUrl)
+	createURLShortenModel := c.MustGet("validated_data").(models.CreateURLShortenModel)
+	shortURL, err := repositories.GetOrCreateShortURL(createURLShortenModel.LongURL)
 	if err != nil {
 		log.Println("Error getting or creating short url: ", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -23,44 +24,43 @@ func CreateUrlShorten(c *gin.Context) {
 	}
 
 	// set the short url to redis
-	redis_client := redis.GetRedis()
+	redisClient := redis.GetRedis()
 
-	result, _ := redis_client.Get(context.Background(), shortUrl).Result()
+	result, _ := redisClient.Get(context.Background(), shortURL).Result()
 	if result == "" {
-		redis_err := redis_client.Set(context.Background(), shortUrl, createUrlShortenModel.LongUrl, 0).Err()
-		if redis_err != nil {
-			log.Println("Error setting short url to redis: ", redis_err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": redis_err.Error()})
+		redisErr := redisClient.Set(context.Background(), shortURL, createURLShortenModel.LongURL, 0).Err()
+		if redisErr != nil {
+			log.Println("Error setting short url to redis: ", redisErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": redisErr.Error()})
 			return
 		}
-		log.Println("Short url set to redis: ", shortUrl)
+		log.Println("Short url set to redis: ", shortURL)
 	}
 
 	// if the original url is already shortened, return the short url
-	if shortUrl != "" {
-		c.JSON(http.StatusCreated, gin.H{"short_url": shortUrl})
+	if shortURL != "" {
+		c.JSON(http.StatusCreated, gin.H{"short_url": shortURL})
 	}
-
 }
 
-func GetUrlByShorten(c *gin.Context, shortUrl string) {
+// GetURLByShorten is a function that gets a long URL from a short URL
+func GetURLByShorten(c *gin.Context, shortURL string) {
 	// check if the short url is already exist in redis
-	result, redis_err := redis.GetRedis().Get(context.Background(), shortUrl).Result()
-	if redis_err != nil {
-		log.Println("Error getting short url from redis: ", redis_err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": redis_err.Error()})
+	result, redisErr := redis.GetRedis().Get(context.Background(), shortURL).Result()
+	if redisErr != nil {
+		log.Println("Error getting short url from redis: ", redisErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": redisErr.Error()})
 		return
-	} else {
-		if result == "" {
-			url, err := repositories.GetUrlByShortUrl(shortUrl)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			c.Redirect(http.StatusTemporaryRedirect, url)
-		} else {
-			log.Println("Short url found in redis: ", result)
-			c.Redirect(http.StatusTemporaryRedirect, result)
+	}
+	if result == "" {
+		url, err := repositories.GetLongURLByShortURL(shortURL)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
 		}
+		c.Redirect(http.StatusTemporaryRedirect, url)
+	} else {
+		log.Println("Short url found in redis: ", result)
+		c.Redirect(http.StatusTemporaryRedirect, result)
 	}
 }

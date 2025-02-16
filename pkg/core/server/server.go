@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,12 +15,13 @@ import (
 )
 
 var (
-	app         *gin.Engine
-	API_VERSION string
-	BASE_PATH   string
-	apiGroup    *gin.RouterGroup
+	app        *gin.Engine
+	apiVersion string
+	basePath   string
+	apiGroup   *gin.RouterGroup
 )
 
+// InitServer is a function that initializes the server
 func InitServer() {
 	ENV := os.Getenv("ENV")
 	if ENV == "local" {
@@ -29,11 +31,11 @@ func InitServer() {
 		_ = godotenv.Load(serverEnvPath)
 	}
 
-	API_HOST := os.Getenv("API_HOST")
-	API_PORT := os.Getenv("API_PORT")
-	API_VERSION = os.Getenv("API_VERSION")
+	apiHost := os.Getenv("API_HOST")
+	apiPort := os.Getenv("API_PORT")
+	apiVersion = os.Getenv("API_VERSION")
 
-	BASE_PATH = "/" + API_VERSION
+	basePath = "/" + apiVersion
 
 	env := os.Getenv("env")
 	if env == "local" {
@@ -46,22 +48,24 @@ func InitServer() {
 	app.Use(gin.Logger())
 	app.Use(gin.Recovery())
 
-	apiGroup = app.Group(BASE_PATH)
+	apiGroup = app.Group(basePath)
 	{
 		// root route
 		apiGroup.GET("/", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "Hello World"})
 		})
 
-		apiGroup.POST("/shorten", ValidateRequest[models.CreateUrlShortenModel](), func(c *gin.Context) {
-			apps.CreateUrlShorten(c)
+		apiGroup.POST("/shorten", ValidateRequest[models.CreateURLShortenModel](), func(c *gin.Context) {
+			apps.CreateURLShorten(c)
 		})
 
 		apiGroup.GET("/:short_url", func(c *gin.Context) {
-			shortUrl := c.Param("short_url")
-			apps.GetUrlByShorten(c, shortUrl)
+			shortURL := c.Param("short_url")
+			apps.GetURLByShorten(c, shortURL)
 		})
 	}
 
-	app.Run(fmt.Sprintf("%s:%s", API_HOST, API_PORT))
+	if err := app.Run(fmt.Sprintf("%s:%s", apiHost, apiPort)); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

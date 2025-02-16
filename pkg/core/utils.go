@@ -11,6 +11,7 @@ const (
 	length   = 6
 )
 
+// GenerateShortURL is a function that generates a short hash from a long URL
 func GenerateShortURL(longURL string) string {
 
 	hasher := md5.New()

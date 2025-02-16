@@ -4,12 +4,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type Url struct {
+// URL is a struct that contains the URL
+type URL struct {
 	gorm.Model
-	ShortUrl string `gorm:"unique"`
-	LongUrl  string
+	ShortURL string `gorm:"unique;column:short_url"`
+	LongURL  string `gorm:"column:long_url"`
 }
 
-func (Url) TableName() string {
+// TableName is a function that returns the table name
+func (URL) TableName() string {
 	return "url"
 }

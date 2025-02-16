@@ -4,6 +4,8 @@ import (
 	dbCmd "shorten_url/cmd/db"
 	serverCmd "shorten_url/cmd/server"
 
+	"log"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,9 +19,11 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(dbCmd.ResetDBCmd)
 	rootCmd.AddCommand(dbCmd.ResetRedisCmd)
-	rootCmd.AddCommand(serverCmd.Cmd)
+	rootCmd.AddCommand(serverCmd.RunServerCmd)
 }
 
 func main() {
-	rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		log.Fatalf("Failed to execute root command: %v", err)
+	}
 }
