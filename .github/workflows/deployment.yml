@@ -1,0 +1,49 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    outputs:
+      short-sha: ${{ steps.short-sha.outputs.sha }}
+      role: ${{ steps.role.outputs.role }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Define a Role
+        id: role
+        run: echo "role=${{ vars.CD_ROLE_ARN }}" >> "$GITHUB_OUTPUT"
+
+        # This will cause the action to perform an AssumeRoleWithWebIdentity call and return temporary security credentials for use by other steps in your workflow.
+        # In order for this to work, you'll need to preconfigure the IAM Identity Provider in your AWS account (see the OIDC section below for details).
+      - uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: ${{ vars.CD_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.9.0
+
+      - uses: benjlevesque/short-sha@v2.2
+        id: short-sha
+        with:
+          length: 6
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6.13.0
+        with:
+          push: true
+          file: Dockerfile
+          platforms: linux/amd64
+          context: .
+          tags: 533267353564.dkr.ecr.ap-northeast-1.amazonaws.com/surl-go:${{ steps.short-sha.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha
