@@ -65,6 +65,7 @@ func InitServer() {
 		})
 	}
 
+	log.Printf("Server starting at %s:%s", apiHost, apiPort)
 	if err := app.Run(fmt.Sprintf("%s:%s", apiHost, apiPort)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
