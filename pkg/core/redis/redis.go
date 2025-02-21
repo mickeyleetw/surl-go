@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"crypto/tls"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,7 +12,12 @@ import (
 )
 
 // RedisClient is a pointer to a redis.Client
-var RedisClient *redis.Client
+var (
+	RedisClient   *redis.Client
+	redisHost     string = "localhost"
+	redisPort     string = "6379"
+	redisPassword string = ""
+)
 
 // GetRedis returns a singleton instance of the redis client
 func GetRedis() *redis.Client {
@@ -20,6 +26,9 @@ func GetRedis() *redis.Client {
 		Addr:     addr,
 		Password: password,
 		DB:       0,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
+		},
 	}) // &redis.Options{} to get redis.Client pointer
 
 	// test connection
@@ -41,9 +50,10 @@ func getRedisConnection() (string, string) {
 
 		_ = godotenv.Load(dbenvPath)
 	}
-	redisHost := os.Getenv("REDIS_HOST")
-	redisPort := os.Getenv("REDIS_PORT")
-	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisHost = os.Getenv("REDIS_HOST")
+	redisPort = os.Getenv("REDIS_PORT")
+	redisPassword = os.Getenv("REDIS_PASSWORD")
+
 	addr := redisHost + ":" + redisPort
 	password := redisPassword
 	return addr, password

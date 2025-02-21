@@ -1,10 +1,9 @@
-DB_DIALECT=postgres
+
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=usr
 DB_PASSWORD=usr
-DB_NAME=surl
-DB_SCHEMA=surl
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=

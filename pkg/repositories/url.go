@@ -14,28 +14,28 @@ func GetOrCreateShortURL(longURL string) (string, error) {
 	err := database.WithTransaction(func(tx *gorm.DB) error {
 		var url domains.URL
 		// Check if the long URL already exists
-		err := tx.Where(&domains.URL{LongURL: longURL}).First(&url).Error
-		if err == nil {
+		result := tx.Where(&domains.URL{LongURL: longURL}).Find(&url)
+		if result.RowsAffected > 0 {
 			shortURL = url.ShortURL
 			return nil
-		} else if err != gorm.ErrRecordNotFound {
-			return err
+		} else if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+			return result.Error
 		}
 
 		// Generate a new short URL
 		shortURL = utils.GenerateShortURL(longURL)
 		// Check if the generated short URL already exists
-		err = tx.Where(&domains.URL{ShortURL: shortURL}).First(&url).Error
-		if err == nil {
+		result = tx.Where(&domains.URL{ShortURL: shortURL}).Find(&url)
+		if result.RowsAffected > 0 {
 			return nil
-		} else if err != gorm.ErrRecordNotFound {
-			return err
+		} else if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+			return result.Error
 		}
 
 		// Create a new URL record
-		err = tx.Create(&domains.URL{LongURL: longURL, ShortURL: shortURL}).Error
-		if err != nil {
-			return err
+		result = tx.Create(&domains.URL{LongURL: longURL, ShortURL: shortURL})
+		if result.Error != nil {
+			return result.Error
 		}
 
 		return nil
