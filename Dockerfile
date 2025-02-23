@@ -13,6 +13,8 @@ RUN apk add --no-cache ca-certificates tzdata && \
 
 COPY --from=builder /shorten_url/cmd/shorten_url /shorten_url/shorten_url
 
+ENV API_HOST=0.0.0.0 API_PORT=8080 API_VERSION=v1
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s \

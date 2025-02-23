@@ -71,17 +71,36 @@ jobs:
         with:
           host: ${{ vars.EC2_HOST }}
           username: ${{ vars.EC2_USER }}
-          key: ${{ vars.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Login to ECR
             aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin 533267353564.dkr.ecr.ap-northeast-1.amazonaws.com
-            sudo docker pull 533267353564.dkr.ecr.ap-northeast-1.amazonaws.com/surl-go:${{ needs.build-and-push.outputs.short-sha }}
-            sudo docker stop surl-go || true
-            sudo docker rm surl-go || true
-            sudo docker run -d --name surl-go \
+            sudo usermod -aG docker ${{ vars.EC2_USER }}
+            newgrp docker
+
+            # Remove old .env file if exists and create new one
+            if [ -f /home/ec2-user/.env ]; then
+              sudo rm -f /home/ec2-user/.env
+            fi
+
+            # Get configurations from Secrets Manager secret and create .env file
+            aws secretsmanager get-secret-value \
+              --secret-id ${{ vars.SECRET_MANAGER_ARN }} \
+              --query 'SecretString' \
+              --output text | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' | sudo tee -a /home/ec2-user/.env > /dev/null
+
+            # Pull and run docker container
+            docker pull 533267353564.dkr.ecr.ap-northeast-1.amazonaws.com/surl-go:${{ needs.build-and-push.outputs.short-sha }}
+
+            # Stop and remove container only if it exists
+            if docker ps -a --format '{{.Names}}' | grep -q '^surl-go$'; then
+              docker stop surl-go
+              docker rm surl-go
+            fi
+
+            docker run -d --name surl-go \
               -p 8080:8080 \
               --memory=750m \
               --memory-swap=750m \
-              -e API_HOST=0.0.0.0 \
-              -e API_PORT=8080 \
-              -e API_VERSION=v1 \
+              --env-file /home/ec2-user/.env \
               533267353564.dkr.ecr.ap-northeast-1.amazonaws.com/surl-go:${{ needs.build-and-push.outputs.short-sha }}

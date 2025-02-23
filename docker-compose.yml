@@ -29,15 +29,10 @@ services:
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - DB_DIALECT=postgres
+      - REDIS_PASSWORD=
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=usr
       - DB_PASSWORD=usr
-      - DB_NAME=surl
-      - DB_SCHEMA=surl
-      - API_HOST=0.0.0.0
-      - API_PORT=8080
-      - API_VERSION=v1
     ports:
       - "8080:8080"

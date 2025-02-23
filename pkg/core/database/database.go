@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -15,9 +16,11 @@ import (
 )
 
 var (
-	instance *gorm.DB
-	once     sync.Once
-	dbSchema string = "surl"
+	instance  *gorm.DB
+	once      sync.Once
+	dbSchema  string = "surl"
+	dbDialect string = "postgres"
+	dbName    string = "surl"
 )
 
 func getDBConnection() string {
@@ -31,14 +34,12 @@ func getDBConnection() string {
 		_ = godotenv.Load(dbenvPath)
 	}
 
-	dbDialect := os.Getenv("DB_DIALECT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
+	dbUser := url.QueryEscape(os.Getenv("DB_USER"))
+	dbPassword := url.QueryEscape(os.Getenv("DB_PASSWORD"))
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
-	dbSchema = os.Getenv("DB_SCHEMA")
-	dsn := dbDialect + "://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable&search_path=" + dbSchema
+	dsn := fmt.Sprintf("%s://%s:%s@%s:%s/%s?sslmode=require&search_path=%s",
+		dbDialect, dbUser, dbPassword, dbHost, dbPort, dbName, dbSchema)
 
 	return dsn
 }
