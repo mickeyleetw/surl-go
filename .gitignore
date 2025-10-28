@@ -22,3 +22,5 @@ go.work
 .vscode
 .dbEnv
 .serverEnv
+
+/.claude*

@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	apps "shorten_url/pkg/apps"
 	models "shorten_url/pkg/models"
+	"shorten_url/pkg/ratelimit"
+	rateLimiter "shorten_url/pkg/ratelimit/algorithms"
+	"shorten_url/pkg/ratelimit/storage"
 )
 
 var (
@@ -20,6 +24,26 @@ var (
 	basePath   string
 	apiGroup   *gin.RouterGroup
 )
+
+// InitFixedWindowRateLimiter initializes a fixed window rate limiter
+func InitFixedWindowRateLimiter() ratelimit.RateLimiter {
+	config := ratelimit.Config{
+		Algorithm: "fixed_window",
+		Storage:   "memory",
+		Limit:     10,
+		Window:    time.Minute,
+	}
+	if err := config.Validate(); err != nil {
+		log.Fatalf("Invalid rate limiter config: %v", err)
+	}
+
+	memoryStorage := storage.NewMemoryStorage()
+	ratelimiter := rateLimiter.NewFixedWindowRateLimiter(
+		memoryStorage, config,
+	)
+
+	return ratelimiter
+}
 
 // InitServer is a function that initializes the server
 func InitServer() {
@@ -44,6 +68,11 @@ func InitServer() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	rateLimiter := InitFixedWindowRateLimiter()
+	shortenApiLimiter := RequestRateLimiter(rateLimiter, func(ctx *gin.Context) string {
+		return ctx.ClientIP()
+	})
+
 	app = gin.New()
 	app.Use(gin.Logger())
 	app.Use(gin.Recovery())
@@ -55,7 +84,7 @@ func InitServer() {
 			c.JSON(http.StatusOK, gin.H{"message": "Hello World"})
 		})
 
-		apiGroup.POST("/shorten", ValidateRequest[models.CreateURLShortenModel](), func(c *gin.Context) {
+		apiGroup.POST("/shorten", shortenApiLimiter, ValidateRequest[models.CreateURLShortenModel](), func(c *gin.Context) {
 			apps.CreateURLShorten(c)
 		})
 
@@ -69,4 +98,5 @@ func InitServer() {
 	if err := app.Run(fmt.Sprintf("%s:%s", apiHost, apiPort)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+
 }
