@@ -69,10 +69,7 @@ func (sw *SlidingWindowRateLimiter) Allow(key string) (bool, ratelimit.RateLimit
 	retryAfter := 0
 	if !allowed && len(validTimestamps) > 0 {
 		oldTimeStamp := validTimestamps[0]
-		retryAfter = int(time.Unix(oldTimeStamp, 0).Add(sw.config.Window).Sub(now).Seconds())
-		if retryAfter < 0 {
-			retryAfter = 0
-		}
+		retryAfter = max(int(time.Unix(oldTimeStamp, 0).Add(sw.config.Window).Sub(now).Seconds()), 0)
 	}
 
 	info := ratelimit.RateLimitInfo{

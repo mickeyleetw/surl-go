@@ -35,11 +35,7 @@ func (fw *FixedWindowRateLimiter) Allow(key string) (bool, ratelimit.RateLimitIn
 		return false, ratelimit.RateLimitInfo{}, err
 	}
 
-	remaining := fw.config.Limit - int(count)
-	if remaining < 0 {
-		remaining = 0
-
-	}
+	remaining := max(fw.config.Limit-int(count), 0)
 
 	allowed := count <= int64(fw.config.Limit)
 
